@@ -4,6 +4,8 @@ import os
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from instagrapi import Client
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 # Zero-width non-printing characters for Meta duplicate-content filter evasion
 INVISIBLE_CHARS = ["\u200B", "\u200C", "\u200D", "\uFEFF"]
@@ -36,8 +38,18 @@ class HyperSaturationSpammer:
         self.is_running = True
         self.processed_msg_ids = set()
         self.active_spam_threads = {}
-        # Massive 80-worker pool for absolute zero queue latency
-        self.executor = ThreadPoolExecutor(max_workers=80)
+        
+        # --- THE CONNECTION POOL BYPASS ---
+        adapter = HTTPAdapter(
+            pool_connections=150,
+            pool_maxsize=150,
+            max_retries=Retry(total=1, backoff_factor=0.1)
+        )
+        self.client.private.mount('https://', adapter)
+        self.client.private.mount('http://', adapter)
+        # ----------------------------------
+        
+        self.executor = ThreadPoolExecutor(max_workers=100)
 
     def authenticate(self):
         try:
