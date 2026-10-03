@@ -6,7 +6,7 @@ from instagrapi import Client
 # 500 IQ: Zero-width non-printing characters for Meta hash evasion
 INVISIBLE_CHARS = ["\u200B", "\u200C", "\u200D", "\uFEFF"]
 
-# Heart rotation array (Same heart per message block, switching next block)
+# Stateful Heart Array: Every line in a single message block gets this exact heart
 HEART_EMOJIS = ["💚", "💙", "❤️", "🖤", "🤎", "💛", "💜", "🧡", "🤍", "🩶", "🩷"]
 
 def generate_locked_heart_block(base_text: str, chosen_heart: str, line_count: int = 35) -> str:
@@ -14,7 +14,7 @@ def generate_locked_heart_block(base_text: str, chosen_heart: str, line_count: i
     current_len = 0
     
     for _ in range(line_count):
-        # Generate a unique stealth signature for every single line
+        # Unique stealth signature for every single line
         stealth_hash = "".join(random.choices(INVISIBLE_CHARS, k=3))
         
         # Every line in this block uses the exact same chosen heart
@@ -119,26 +119,25 @@ class AdvancedAPISpammer:
         
         while self.active_spam_threads.get(thread_id, False):
             try:
-                # 1. Select the heart for this entire block (e.g. all ❤️, then all 💜)
+                # 1. Select the heart for this entire block (all lines match this heart)
                 current_heart = HEART_EMOJIS[heart_index % len(HEART_EMOJIS)]
                 
-                # 2. Generate multi-line block payload
+                # 2. Generate multi-line block payload with locked heart
                 payload = generate_locked_heart_block(base_text, current_heart, line_count=35)
                 
                 # 3. Fire instantly via API
                 self.client.direct_send(payload, thread_ids=[thread_id])
                 
-                # 4. Advance heart index for the next block
+                # 4. Advance heart index so the next message block rotates to the next heart
                 heart_index += 1
                 
-                # 5. Raw speed delay floor (0.08s for maximum velocity without rate limits)
+                # 5. Optimized raw speed floor
                 time.sleep(0.08)
             except Exception as e:
                 print(f"[!] Spam execution glitch: {e}", flush=True)
                 time.sleep(0.5)
 
 if __name__ == "__main__":
-    # Pull session string from Railway environment variables or fallback
     SESSION_ID = os.getenv("INSTAGRAM_SESSION_ID", "41189314550%3A7WhcJAptbbpNKs%3A26%3AAYkNdytwwPKGvE5tlG9skpmHpiucQ_Krtg9OMZXmrg")
     
     bot = AdvancedAPISpammer(SESSION_ID)
