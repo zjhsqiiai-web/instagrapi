@@ -1,7 +1,6 @@
 import time
 import random
 import os
-import gc
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from instagrapi import Client
@@ -29,7 +28,7 @@ def generate_locked_heart_block(base_text: str, chosen_heart: str, line_count: i
         
     return "\n\n".join(lines)
 
-class MaxSaturationSpammer:
+class HyperSaturationSpammer:
     def __init__(self, session_id: str, prefix: str = "^"):
         self.client = Client()
         self.session_id = session_id
@@ -37,8 +36,8 @@ class MaxSaturationSpammer:
         self.is_running = True
         self.processed_msg_ids = set()
         self.active_spam_threads = {}
-        # Massive 40-worker pool to eliminate thread-queue bottlenecks completely
-        self.executor = ThreadPoolExecutor(max_workers=40)
+        # Massive 80-worker pool for absolute zero queue latency
+        self.executor = ThreadPoolExecutor(max_workers=80)
 
     def authenticate(self):
         try:
@@ -61,9 +60,8 @@ class MaxSaturationSpammer:
         return await loop.run_in_executor(self.executor, self.send_message_sync, thread_id, text)
 
     async def run_omni_poll_loop(self):
-        print(f"[+] Max-Saturation Omni-Listener Online. Monitoring inbox for '{self.prefix}'...", flush=True)
+        print(f"[+] Hyper-Saturation Omni-Listener Online. Monitoring inbox for '{self.prefix}'...", flush=True)
         
-        poll_ticks = 0
         while self.is_running:
             try:
                 loop = asyncio.get_running_loop()
@@ -90,15 +88,10 @@ class MaxSaturationSpammer:
                             print(f"[+] Command captured in Thread {thread_id}: {msg_text}", flush=True)
                             await self.handle_command(thread_id, msg_text)
                             
-                poll_ticks += 1
-                if poll_ticks >= 30:
-                    gc.collect()
-                    poll_ticks = 0
-                            
             except Exception as e:
                 print(f"[!] Polling exception: {e}", flush=True)
             
-            await asyncio.sleep(0.8)
+            await asyncio.sleep(0.6)
 
     async def handle_command(self, thread_id: str, full_text: str):
         parts = full_text.split(" ")
@@ -106,7 +99,7 @@ class MaxSaturationSpammer:
         args = parts[1:]
 
         if cmd == f"{self.prefix}ping":
-            await self.send_message_async(thread_id, "Pong! 🏓 Max-Saturation Engine Live! ⚡")
+            await self.send_message_async(thread_id, "Pong! 🏓 Hyper-Saturation Engine Live! ⚡")
 
         elif cmd == f"{self.prefix}spam":
             if not args:
@@ -115,45 +108,40 @@ class MaxSaturationSpammer:
             
             spam_text = " ".join(args)
             self.active_spam_threads[thread_id] = True
-            await self.send_message_async(thread_id, f"⚡ Zero-Delay Saturation Spammer Initialized!")
+            await self.send_message_async(thread_id, f"⚡ Hyper-Saturation Engine Initialized!")
             
-            asyncio.create_task(self.execute_max_saturation_spam(thread_id, spam_text))
+            asyncio.create_task(self.execute_hyper_saturation_spam(thread_id, spam_text))
 
         elif cmd == f"{self.prefix}unspam":
             if thread_id in self.active_spam_threads:
                 self.active_spam_threads[thread_id] = False
                 await self.send_message_async(thread_id, "🛑 Spam engine halted.")
 
-    async def execute_max_saturation_spam(self, thread_id: str, base_text: str):
+    async def execute_hyper_saturation_spam(self, thread_id: str, base_text: str):
         heart_index = 0
-        message_counter = 0
         
         while self.active_spam_threads.get(thread_id, False):
             try:
-                # Fire 10 parallel requests simultaneously per wave with ZERO delay between waves
+                # Fire 20 parallel requests simultaneously per wave with zero latency bottlenecks
                 batch_tasks = []
-                for _ in range(10):
+                for _ in range(20):
                     current_heart = HEART_EMOJIS[heart_index % len(HEART_EMOJIS)]
                     payload = generate_locked_heart_block(base_text, current_heart, line_count=35)
                     batch_tasks.append(self.send_message_async(thread_id, payload))
                     heart_index += 1
 
-                # Execute entire batch instantly without waiting/sleeping
+                # Execute massive batch concurrently without blocking
                 await asyncio.gather(*batch_tasks)
                 
-                message_counter += 10
-                if message_counter % 50 == 0:
-                    gc.collect()
-                
-                # Zero delay. Pure raw hardware/network throughput.
+                # Zero delay. Pure hardware saturation.
                 await asyncio.sleep(0.0)
             except Exception as e:
                 print(f"[!] Burst execution anomaly: {e}", flush=True)
-                await asyncio.sleep(0.2)
+                await asyncio.sleep(0.1)
 
 if __name__ == "__main__":
     SESSION_ID = os.getenv("INSTAGRAM_SESSION_ID", "41189314550%3A7WhcJAptbbpNKs%3A26%3AAYkNdytwwPKGvE5tlG9skpmHpiucQ_Krtg9OMZXmrg")
     
-    bot = MaxSaturationSpammer(SESSION_ID)
+    bot = HyperSaturationSpammer(SESSION_ID)
     if bot.authenticate():
         asyncio.run(bot.run_omni_poll_loop())
