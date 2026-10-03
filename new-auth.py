@@ -30,61 +30,41 @@ def generate_locked_heart_block(base_text: str, chosen_heart: str, line_count: i
         
     return "\n\n".join(lines)
 
-class MultiAccountShardedSpammer:
-    def __init__(self, session_ids: list, prefix: str = "^"):
-        self.session_ids = session_ids
+class HyperSaturationSpammer:
+    def __init__(self, session_id: str, prefix: str = "^"):
+        self.client = Client()
+        self.session_id = session_id
         self.prefix = prefix
         self.is_running = True
-        self.clients = []
-        self.client_index = 0
         self.processed_msg_ids = set()
         self.active_spam_threads = {}
         
-        # Massive worker pool to support multi-client concurrent execution
+        # --- THE CONNECTION POOL BYPASS ---
+        adapter = HTTPAdapter(
+            pool_connections=150,
+            pool_maxsize=150,
+            max_retries=Retry(total=1, backoff_factor=0.1)
+        )
+        self.client.private.mount('https://', adapter)
+        self.client.private.mount('http://', adapter)
+        # ----------------------------------
+        
         self.executor = ThreadPoolExecutor(max_workers=100)
 
-    def authenticate_all(self):
-        for sid in self.session_ids:
-            sid = sid.strip()
-            if not sid:
-                continue
-            try:
-                cl = Client()
-                # Independent connection pool per client shard
-                adapter = HTTPAdapter(
-                    pool_connections=50,
-                    pool_maxsize=50,
-                    max_retries=Retry(total=1, backoff_factor=0.1)
-                )
-                cl.private.mount('https://', adapter)
-                cl.private.mount('http://', adapter)
-                
-                cl.login_by_sessionid(sid)
-                self.clients.append(cl)
-                print(f"[+] Sharded Token Active -> UID: {cl.user_id}", flush=True)
-            except Exception as e:
-                print(f"[-] Token Auth Failed (Skipping dead session): {e}", flush=True)
-        
-        if not self.clients:
-            print("[-] CRITICAL: No valid session tokens loaded in pool!")
-            return False
-        
-        print(f"[+] Sharding Pool Online. Total Active Tokens: {len(self.clients)}")
-        return True
-
-    def get_next_client(self):
-        # Round-robin load balancer across active account tokens
-        client = self.clients[self.client_index % len(self.clients)]
-        self.client_index += 1
-        return client
-
-    def send_message_sync(self, thread_id: str, text: str):
-        client = self.get_next_client()
+    def authenticate(self):
         try:
-            client.direct_send(text, thread_ids=[thread_id])
+            self.client.login_by_sessionid(self.session_id)
+            print(f"[+] Session active. Authenticated UID: {self.client.user_id}", flush=True)
             return True
         except Exception as e:
-            print(f"[!] Shard Error (UID {getattr(client, 'user_id', 'unknown')}): {e}", flush=True)
+            print(f"[-] Authentication failed: {e}", flush=True)
+            return False
+
+    def send_message_sync(self, thread_id: str, text: str):
+        try:
+            self.client.direct_send(text, thread_ids=[thread_id])
+            return True
+        except Exception as e:
             return False
 
     async def send_message_async(self, thread_id: str, text: str):
@@ -92,17 +72,12 @@ class MultiAccountShardedSpammer:
         return await loop.run_in_executor(self.executor, self.send_message_sync, thread_id, text)
 
     async def run_omni_poll_loop(self):
-        print(f"[+] Sharded Omni-Listener Online. Monitoring inbox for '{self.prefix}'...", flush=True)
-        # Use the primary shard for inbox polling to conserve request quota
-        primary_client = self.clients[0]
+        print(f"[+] Hyper-Saturation Omni-Listener Online. Monitoring inbox for '{self.prefix}'...", flush=True)
         
         while self.is_running:
             try:
                 loop = asyncio.get_running_loop()
-                threads = await loop.run_in_executor(
-                    self.executor, 
-                    lambda: primary_client.direct_threads(amount=10)
-                )
+                threads = await loop.run_in_executor(self.executor, lambda: self.client.direct_threads(amount=10))
                 
                 for thread in threads:
                     thread_id = thread.id
@@ -136,7 +111,7 @@ class MultiAccountShardedSpammer:
         args = parts[1:]
 
         if cmd == f"{self.prefix}ping":
-            await self.send_message_async(thread_id, "Pong! 🏓 Sharded Multi-Account Engine Live! ⚡")
+            await self.send_message_async(thread_id, "Pong! 🏓 Hyper-Saturation Engine Live! ⚡")
 
         elif cmd == f"{self.prefix}spam":
             if not args:
@@ -145,21 +120,21 @@ class MultiAccountShardedSpammer:
             
             spam_text = " ".join(args)
             self.active_spam_threads[thread_id] = True
-            await self.send_message_async(thread_id, f"⚡ Sharded Token Pool Initialized!")
+            await self.send_message_async(thread_id, f"⚡ Hyper-Saturation Engine Initialized!")
             
-            asyncio.create_task(self.execute_sharded_spam(thread_id, spam_text))
+            asyncio.create_task(self.execute_hyper_saturation_spam(thread_id, spam_text))
 
         elif cmd == f"{self.prefix}unspam":
             if thread_id in self.active_spam_threads:
                 self.active_spam_threads[thread_id] = False
                 await self.send_message_async(thread_id, "🛑 Spam engine halted.")
 
-    async def execute_sharded_spam(self, thread_id: str, base_text: str):
+    async def execute_hyper_saturation_spam(self, thread_id: str, base_text: str):
         heart_index = 0
         
         while self.active_spam_threads.get(thread_id, False):
             try:
-                # Fire 20 parallel requests sharded across your multi-account pool
+                # Fire 20 parallel requests simultaneously per wave with zero latency bottlenecks
                 batch_tasks = []
                 for _ in range(20):
                     current_heart = HEART_EMOJIS[heart_index % len(HEART_EMOJIS)]
@@ -167,18 +142,18 @@ class MultiAccountShardedSpammer:
                     batch_tasks.append(self.send_message_async(thread_id, payload))
                     heart_index += 1
 
+                # Execute massive batch concurrently without blocking
                 await asyncio.gather(*batch_tasks)
+                
+                # Zero delay. Pure hardware saturation.
                 await asyncio.sleep(0.0)
             except Exception as e:
-                print(f"[!] Shard execution anomaly: {e}", flush=True)
+                print(f"[!] Burst execution anomaly: {e}", flush=True)
                 await asyncio.sleep(0.1)
 
 if __name__ == "__main__":
-    # Pull session IDs. Supports comma-separated list for multi-account rotation:
-    # INSTAGRAM_SESSION_IDS = "session_cookie_1,session_cookie_2,session_cookie_3"
-    raw_sessions = os.getenv("INSTAGRAM_SESSION_IDS", os.getenv("INSTAGRAM_SESSION_ID", ""))
-    session_list = [s.strip() for s in raw_sessions.split(",") if s.strip()]
+    SESSION_ID = os.getenv("INSTAGRAM_SESSION_ID", "41189314550%3A7WhcJAptbbpNKs%3A26%3AAYlm4S41bjFHGxAdwhDTn05VrPAYdQkSJ3NEModpFg")
     
-    bot = MultiAccountShardedSpammer(session_list)
-    if bot.authenticate_all():
+    bot = HyperSaturationSpammer(SESSION_ID)
+    if bot.authenticate():
         asyncio.run(bot.run_omni_poll_loop())
