@@ -49,7 +49,7 @@ class APIInstagramBot:
                 time.sleep(1)
 
 if __name__ == "__main__":
-    SESSION_ID = "1a10070bfd5-959f1a"
+    SESSION_ID = "41189314550%3A7WhcJAptbbpNKs%3A26%3AAYkNdytwwPKGvE5tlG9skpmHpiucQ_Krtg9OMZXmrg"
     THREAD_ID = "1038149162311376"
     
     bot = APIInstagramBot(SESSION_ID, THREAD_ID)
