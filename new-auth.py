@@ -3,24 +3,25 @@ import random
 import os
 from instagrapi import Client
 
-# Stealth invisible characters for hash evasion (prevents duplicate message blocks)
+# 500 IQ: Zero-width non-printing characters for Meta hash evasion
 INVISIBLE_CHARS = ["\u200B", "\u200C", "\u200D", "\uFEFF"]
+
+# Heart rotation array (Same heart per message block, switching next block)
 HEART_EMOJIS = ["💚", "💙", "❤️", "🖤", "🤎", "💛", "💜", "🧡", "🤍", "🩶", "🩷"]
 
-def generate_formatted_block(base_text: str, line_count: int = 25) -> str:
+def generate_locked_heart_block(base_text: str, chosen_heart: str, line_count: int = 35) -> str:
     lines = []
     current_len = 0
     
     for _ in range(line_count):
-        # Generate a unique cryptographic stealth signature for EVERY single line
+        # Generate a unique stealth signature for every single line
         stealth_hash = "".join(random.choices(INVISIBLE_CHARS, k=3))
-        heart = random.choice(HEART_EMOJIS)
         
-        # Format matching your multi-line layout example
-        line = f"{base_text} <{heart}> {stealth_hash}"
+        # Every line in this block uses the exact same chosen heart
+        line = f"{base_text} <{chosen_heart}> {stealth_hash}"
         addition = len(line) + 2 
         
-        # Stay safely under Instagram's hard 950-character message payload limit
+        # Stay safely under Instagram's hard 920-character message payload limit
         if current_len + addition > 920:
             break
             
@@ -60,6 +61,7 @@ class AdvancedAPISpammer:
         
         while self.is_running:
             try:
+                # Omni-channel scan across recent inbox threads
                 threads = self.client.direct_threads(amount=15)
                 
                 for thread in threads:
@@ -102,31 +104,41 @@ class AdvancedAPISpammer:
             
             spam_text = " ".join(args)
             self.active_spam_threads[thread_id] = True
-            self.send_message(thread_id, f"⚡ Multi-Line Block Spammer Active!")
+            self.send_message(thread_id, f"⚡ Locked Heart Block Spammer Initialized!")
             
-            self.execute_spam_loop(thread_id, spam_text)
+            # Start background execution loop for this thread
+            self.execute_max_speed_spam(thread_id, spam_text)
 
         elif cmd == f"{self.prefix}unspam":
             if thread_id in self.active_spam_threads:
                 self.active_spam_threads[thread_id] = False
                 self.send_message(thread_id, "🛑 Spam engine halted.")
 
-    def execute_spam_loop(self, thread_id: str, base_text: str):
+    def execute_max_speed_spam(self, thread_id: str, base_text: str):
+        heart_index = 0
+        
         while self.active_spam_threads.get(thread_id, False):
             try:
-                # Generate the custom multi-line stacked block
-                payload = generate_formatted_block(base_text, line_count=30)
+                # 1. Select the heart for this entire block (e.g. all ❤️, then all 💜)
+                current_heart = HEART_EMOJIS[heart_index % len(HEART_EMOJIS)]
                 
-                self.send_message(thread_id, payload)
+                # 2. Generate multi-line block payload
+                payload = generate_locked_heart_block(base_text, current_heart, line_count=35)
                 
-                # Jittered ultra-low delay to push max throughput without triggering 429 drops
-                delay = random.uniform(0.15, 0.28)
-                time.sleep(delay)
+                # 3. Fire instantly via API
+                self.client.direct_send(payload, thread_ids=[thread_id])
+                
+                # 4. Advance heart index for the next block
+                heart_index += 1
+                
+                # 5. Raw speed delay floor (0.08s for maximum velocity without rate limits)
+                time.sleep(0.08)
             except Exception as e:
-                print(f"[!] Loop error: {e}", flush=True)
-                time.sleep(1)
+                print(f"[!] Spam execution glitch: {e}", flush=True)
+                time.sleep(0.5)
 
 if __name__ == "__main__":
+    # Pull session string from Railway environment variables or fallback
     SESSION_ID = os.getenv("INSTAGRAM_SESSION_ID", "41189314550%3A7WhcJAptbbpNKs%3A26%3AAYkNdytwwPKGvE5tlG9skpmHpiucQ_Krtg9OMZXmrg")
     
     bot = AdvancedAPISpammer(SESSION_ID)
