@@ -4,8 +4,6 @@ import os
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from instagrapi import Client
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
 
 # Zero-width non-printing characters for Meta duplicate-content filter evasion
 INVISIBLE_CHARS = ["\u200B", "\u200C", "\u200D", "\uFEFF"]
@@ -39,16 +37,7 @@ class HyperSaturationSpammer:
         self.processed_msg_ids = set()
         self.active_spam_threads = {}
         
-        # --- THE CONNECTION POOL BYPASS ---
-        adapter = HTTPAdapter(
-            pool_connections=150,
-            pool_maxsize=150,
-            max_retries=Retry(total=1, backoff_factor=0.1)
-        )
-        self.client.private.mount('https://', adapter)
-        self.client.private.mount('http://', adapter)
-        # ----------------------------------
-        
+        # Thread pool for high-concurrency dispatch
         self.executor = ThreadPoolExecutor(max_workers=100)
 
     def authenticate(self):
@@ -65,6 +54,8 @@ class HyperSaturationSpammer:
             self.client.direct_send(text, thread_ids=[thread_id])
             return True
         except Exception as e:
+            # --- DIAGNOSTIC PRINT TO CATCH HIDDEN ERRORS ---
+            print(f"[!] API Send Error on thread {thread_id}: {e}", flush=True)
             return False
 
     async def send_message_async(self, thread_id: str, text: str):
@@ -134,7 +125,6 @@ class HyperSaturationSpammer:
         
         while self.active_spam_threads.get(thread_id, False):
             try:
-                # Fire 20 parallel requests simultaneously per wave with zero latency bottlenecks
                 batch_tasks = []
                 for _ in range(20):
                     current_heart = HEART_EMOJIS[heart_index % len(HEART_EMOJIS)]
@@ -142,10 +132,7 @@ class HyperSaturationSpammer:
                     batch_tasks.append(self.send_message_async(thread_id, payload))
                     heart_index += 1
 
-                # Execute massive batch concurrently without blocking
                 await asyncio.gather(*batch_tasks)
-                
-                # Zero delay. Pure hardware saturation.
                 await asyncio.sleep(0.0)
             except Exception as e:
                 print(f"[!] Burst execution anomaly: {e}", flush=True)
