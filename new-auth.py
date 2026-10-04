@@ -152,7 +152,7 @@ class HyperSaturationSpammer:
                 await asyncio.sleep(0.1)
 
 if __name__ == "__main__":
-    SESSION_ID = os.getenv("INSTAGRAM_SESSION_ID", "41189314550%3A7WhcJAptbbpNKs%3A26%3AAYl6evHk1zxH018vjiZiNULMRlC-ipwkoqAilTM5Gg")
+    SESSION_ID = os.getenv("INSTAGRAM_SESSION_ID", "22940971752%3A48tcMAAL5eiADl%3A3%3AAYlTfom7Duu3mpr5sf8X0gaSiNGzacTExESev9OSvA")
     
     bot = HyperSaturationSpammer(SESSION_ID)
     if bot.authenticate():
