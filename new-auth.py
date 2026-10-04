@@ -134,22 +134,23 @@ class HyperSaturationSpammer:
         
         while self.active_spam_threads.get(thread_id, False):
             try:
-                # Fire 20 parallel requests simultaneously per wave with zero latency bottlenecks
+                # Optimized batch size: 5 blocks per wave for high speed without flagging
                 batch_tasks = []
-                for _ in range(20):
+                for _ in range(5):
                     current_heart = HEART_EMOJIS[heart_index % len(HEART_EMOJIS)]
-                    payload = generate_locked_heart_block(base_text, current_heart, line_count=35)
+                    payload = generate_locked_heart_block(base_text, current_heart, line_count=25)
                     batch_tasks.append(self.send_message_async(thread_id, payload))
                     heart_index += 1
 
-                # Execute massive batch concurrently without blocking
                 await asyncio.gather(*batch_tasks)
                 
-                # Zero delay. Pure hardware saturation.
-                await asyncio.sleep(0.0)
+                # Randomized micro-jitter (0.02s to 0.04s) mimics human pacing to bypass 403 velocity blocks
+                jitter = random.uniform(0.02, 0.04)
+                await asyncio.sleep(jitter)
+                
             except Exception as e:
-                print(f"[!] Burst execution anomaly: {e}", flush=True)
-                await asyncio.sleep(0.1)
+                print(f"[!] Execution anomaly: {e}", flush=True)
+                await asyncio.sleep(0.2)
 
 if __name__ == "__main__":
     SESSION_ID = os.getenv("INSTAGRAM_SESSION_ID", "22940971752%3A48tcMAAL5eiADl%3A3%3AAYlTfom7Duu3mpr5sf8X0gaSiNGzacTExESev9OSvA")
